@@ -349,9 +349,7 @@ function BookingFlow() {
           <div>
             <h1>FairQueue</h1>
             <p>
-              A compact distributed-systems demo for high-concurrency train booking:
-              Redis FIFO admission, TTL seat locks, Postgres booking durability, WebSocket queue updates,
-              rate limiting, and live admin stats.
+            A fairness-first ticket booking simulator inspired by high-concurrency systems like IRCTC Tatkal. Built to explore scalable queueing, concurrent booking control, and real-time traffic handling under heavy demand.
             </p>
           </div>
           <div className="panel">

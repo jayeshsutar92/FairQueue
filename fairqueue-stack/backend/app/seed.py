@@ -11,14 +11,34 @@ SEED_TRAINS = [
 async def init_db_and_seed():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
     async with SessionLocal() as s:
         existing = (await s.execute(select(Train))).scalars().all()
+
         if existing:
             return
+
+        # Insert trains first
         for t in SEED_TRAINS:
             s.add(Train(**t))
+
+        await s.flush()
+
+        # Insert seats after trains exist
+        for t in SEED_TRAINS:
             for c in range(1, t['coaches'] + 1):
                 for n in range(1, t['seats_per_coach'] + 1):
                     sid = f"{t['id']}-C{c}-S{n}"
-                    s.add(Seat(id=sid, train_id=t['id'], coach=f'C{c}', seat_number=n, label=f"C{c}-{n:02d}", status='available'))
+
+                    s.add(
+                        Seat(
+                            id=sid,
+                            train_id=t['id'],
+                            coach=f'C{c}',
+                            seat_number=n,
+                            label=f"C{c}-{n:02d}",
+                            status='available'
+                        )
+                    )
+
         await s.commit()
