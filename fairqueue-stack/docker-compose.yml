@@ -36,6 +36,12 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://fairqueue:fairqueue@postgres:5432/fairqueue
       REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev-change-me-fairqueue-secret
+      ACCESS_TOKEN_EXPIRE_MINUTES: '120'
+      OTP_EXPIRE_MINUTES: '10'
+      RETURN_DEV_OTP: 'true'
+      ADMIN_EMAIL: admin@fairqueue.local
+      ADMIN_PASSWORD: AdminPass123!
       ADMISSION_BATCH: '5'
       ADMISSION_INTERVAL_MS: '4000'
       LOCK_TTL_SECONDS: '90'

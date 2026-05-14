@@ -97,6 +97,10 @@ button:disabled {
   padding: 48px 0 26px;
 }
 
+.auth-shell {
+  padding-top: 28px;
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
@@ -313,5 +317,9 @@ p {
 
   .seat-grid {
     grid-template-columns: repeat(6, minmax(38px, 1fr));
+  }
+
+  .hide-sm {
+    display: none;
   }
 }

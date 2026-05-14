@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, ForeignKey
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base
 
@@ -39,4 +39,29 @@ class Booking(Base):
     payment_id: Mapped[str] = mapped_column(String)
     amount_inr: Mapped[int] = mapped_column(Integer, default=1499)
     status: Mapped[str] = mapped_column(String, default='confirmed')
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class User(Base):
+    __tablename__ = 'users'
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default='user')  # user|admin
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class OtpCode(Base):
+    __tablename__ = 'otp_codes'
+    __table_args__ = (
+        UniqueConstraint('email', 'purpose', 'code_hash', name='uq_otp_email_purpose_hash'),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), index=True, nullable=False)
+    purpose: Mapped[str] = mapped_column(String(20), nullable=False)  # login|reset
+    code_hash: Mapped[str] = mapped_column(String, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

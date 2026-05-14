@@ -10,6 +10,7 @@ system inspired by IRCTC Tatkal.
 - Queue and locks: Redis 7 sorted sets, sets, counters, `SET NX EX`
 - Database: PostgreSQL 16 through asyncpg
 - Realtime: WebSocket queue status updates
+- Auth: email/password, OTP login, password reset, JWT protected routes
 - Load testing: Locust
 - Orchestration: Docker Compose
 
@@ -89,11 +90,12 @@ The frontend reads:
 ## Core Flows To Verify
 
 1. Open the frontend and join a train queue.
-2. Watch the waiting room update over WebSocket.
-3. After admission, pick an available seat.
-4. Confirm payment before the Redis lock TTL expires.
-5. Open Admin and verify queue counters, active locks, and Postgres totals.
-6. Run Locust from http://localhost:8089 for contention and rate-limit behavior.
+2. Create an account or log in with the seeded admin account.
+3. Watch the waiting room update over WebSocket.
+4. After admission, pick an available seat.
+5. Confirm payment before the Redis lock TTL expires.
+6. Open Admin as `admin@fairqueue.local` / `AdminPass123!` and verify queue counters, active locks, Postgres totals, and user deletion.
+7. Run Locust from http://localhost:8089 for contention and rate-limit behavior.
 
 ## API
 
@@ -128,6 +130,12 @@ Backend environment variables:
 | --- | --- | --- |
 | `DATABASE_URL` | `postgresql+asyncpg://fairqueue:fairqueue@postgres:5432/fairqueue` | Async SQLAlchemy database URL |
 | `REDIS_URL` | `redis://redis:6379/0` | Redis URL |
+| `JWT_SECRET` | `dev-change-me-fairqueue-secret` | HMAC signing secret for access tokens |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `120` | JWT lifetime |
+| `OTP_EXPIRE_MINUTES` | `10` | OTP lifetime |
+| `RETURN_DEV_OTP` | `false` | Return OTP in API responses for local demo use; Compose enables this for demos |
+| `ADMIN_EMAIL` | `admin@fairqueue.local` | Seeded admin email |
+| `ADMIN_PASSWORD` | `AdminPass123!` | Seeded admin password |
 | `ADMISSION_BATCH` | `5` | Users admitted per tick |
 | `ADMISSION_INTERVAL_MS` | `4000` | Admission tick interval |
 | `LOCK_TTL_SECONDS` | `90` | Seat lock TTL |
@@ -148,6 +156,7 @@ fairqueue-stack/
       seed.py
       config.py
       redis_client.py
+      security.py
     Dockerfile
     requirements.txt
   frontend/

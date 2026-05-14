@@ -6,10 +6,61 @@ All endpoints return JSON. Errors: `{ "detail": "<code>" }` with non-2xx.
 
 Interactive docs: **`/docs`** (Swagger) and **`/redoc`**.
 
+Most booking and admin endpoints require:
+
+```http
+Authorization: Bearer <access_token>
+```
+
 ## Health
 
 ### `GET /health`
 Returns service status and current config.
+
+## Auth
+
+### `POST /auth/signup`
+Create a user account. Emails are normalized and unique. Passwords are stored
+as PBKDF2 hashes.
+
+```json
+{ "email": "user@example.com", "password": "Passw0rd!", "name": "User" }
+```
+
+### `POST /auth/login`
+Login with email and password.
+
+```json
+{ "email": "user@example.com", "password": "Passw0rd!" }
+```
+
+### `POST /auth/otp/request`
+Request a login OTP for an existing account. OTPs expire and are single-use.
+
+```json
+{ "email": "user@example.com" }
+```
+
+### `POST /auth/otp/verify`
+Verify a login OTP and receive a JWT.
+
+```json
+{ "email": "user@example.com", "otp": "123456" }
+```
+
+### `POST /auth/password/forgot`
+Request a password reset OTP. The response is generic to avoid account
+enumeration.
+
+### `POST /auth/password/reset`
+Reset password with a valid reset OTP.
+
+```json
+{ "email": "user@example.com", "otp": "123456", "new_password": "Newpass123" }
+```
+
+### `GET /auth/me`
+Return the authenticated user.
 
 ## Trains
 
@@ -76,6 +127,12 @@ Global counters + per-train queue depths + active locks + DB totals.
 
 ### `POST /admin/reset`
 Dangerous: `FLUSHDB` Redis, mark all seats available, delete bookings. Demo only.
+
+### `GET /admin/users`
+List users. Admin only.
+
+### `DELETE /admin/users/{user_id}`
+Delete a user account. Admin only. Admins cannot delete themselves.
 
 ## Status codes
 

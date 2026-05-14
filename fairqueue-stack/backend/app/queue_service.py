@@ -20,9 +20,9 @@ ADMITTED = 'q:admitted:{tid}'
 USER = 'q:user:{uid}'
 SEAT_LOCK = 'seat:lock:{sid}'
 
-async def join_queue(train_id: str) -> dict:
+async def join_queue(train_id: str, user_id: str | None = None) -> dict:
     r = await get_redis()
-    uid = str(uuid.uuid4())
+    uid = user_id or str(uuid.uuid4())
     score = int(time.time() * 1000)
     pipe = r.pipeline()
     pipe.zadd(WAITING.format(tid=train_id), {uid: score})

@@ -1,6 +1,8 @@
 from sqlalchemy import select
 from .db import SessionLocal, engine, Base
-from .models import Train, Seat
+from .models import Train, Seat, User
+from .config import settings
+from .security import hash_password, normalize_email
 
 SEED_TRAINS = [
     dict(id='tatkal-rajdhani-12951', name='Rajdhani Express', number='12951', source='New Delhi', dest='Mumbai Central', departure='16:55', arrival='08:35', date='Tomorrow', duration='15h 40m', coaches=4, seats_per_coach=12),
@@ -13,6 +15,19 @@ async def init_db_and_seed():
         await conn.run_sync(Base.metadata.create_all)
 
     async with SessionLocal() as s:
+        admin_email = normalize_email(settings.ADMIN_EMAIL)
+        admin = (await s.execute(select(User).where(User.email == admin_email))).scalar_one_or_none()
+        if not admin:
+            s.add(User(
+                id='admin-default',
+                email=admin_email,
+                name='FairQueue Admin',
+                password_hash=hash_password(settings.ADMIN_PASSWORD),
+                role='admin',
+                is_active=True,
+            ))
+            await s.commit()
+
         existing = (await s.execute(select(Train))).scalars().all()
 
         if existing:

@@ -4,15 +4,38 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 const WS_BASE = process.env.NEXT_PUBLIC_WS_BASE || "ws://localhost:8000";
+const AUTH_KEY = "fairqueue.auth";
 
 async function api(path, options = {}) {
+  const { token, ...fetchOptions } = options;
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(fetchOptions.headers || {}),
+    },
+    ...fetchOptions,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.detail || data.error || `HTTP ${res.status}`);
   return data;
+}
+
+function loadAuth() {
+  if (typeof window === "undefined") return null;
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveAuth(auth) {
+  localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+}
+
+function clearAuth() {
+  localStorage.removeItem(AUTH_KEY);
 }
 
 function Button({ children, className = "", ...props }) {
@@ -20,6 +43,153 @@ function Button({ children, className = "", ...props }) {
     <button className={`btn ${className}`} {...props}>
       {children}
     </button>
+  );
+}
+
+function AuthPanel({ onAuth }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [devOtp, setDevOtp] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  function acceptAuth(result) {
+    const next = { token: result.access_token, user: result.user };
+    saveAuth(next);
+    onAuth(next);
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      if (mode === "signup") {
+        const result = await api("/auth/signup", {
+          method: "POST",
+          body: JSON.stringify({ email, name, password }),
+        });
+        acceptAuth(result);
+      } else if (mode === "login") {
+        const result = await api("/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+        });
+        acceptAuth(result);
+      } else if (mode === "otp") {
+        const result = await api("/auth/otp/verify", {
+          method: "POST",
+          body: JSON.stringify({ email, otp }),
+        });
+        acceptAuth(result);
+      } else if (mode === "reset") {
+        await api("/auth/password/reset", {
+          method: "POST",
+          body: JSON.stringify({ email, otp, new_password: newPassword }),
+        });
+        setMessage("Password reset. You can log in now.");
+        setMode("login");
+        setOtp("");
+        setPassword("");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestOtp(purpose) {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    setDevOtp("");
+    try {
+      const path = purpose === "reset" ? "/auth/password/forgot" : "/auth/otp/request";
+      const result = await api(path, {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      setMessage(result.message || "OTP sent");
+      if (result.dev_otp) setDevOtp(result.dev_otp);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const needsPassword = mode === "signup" || mode === "login";
+  const needsOtp = mode === "otp" || mode === "reset";
+
+  return (
+    <main className="shell auth-shell">
+      <section className="hero">
+        <div className="hero-grid">
+          <div>
+            <h1>FairQueue</h1>
+            <p>Sign in to enter the virtual waiting room. Booking, payment, and admin actions are protected by JWT auth.</p>
+          </div>
+          <form className="panel form" onSubmit={submit}>
+            <h2>{mode === "signup" ? "Create Account" : mode === "otp" ? "OTP Login" : mode === "reset" ? "Reset Password" : "Login"}</h2>
+            <div className="tabs">
+              <button type="button" className={`tab ${mode === "login" ? "active" : ""}`} onClick={() => setMode("login")}>Password</button>
+              <button type="button" className={`tab ${mode === "otp" ? "active" : ""}`} onClick={() => setMode("otp")}>OTP</button>
+              <button type="button" className={`tab ${mode === "signup" ? "active" : ""}`} onClick={() => setMode("signup")}>Signup</button>
+              <button type="button" className={`tab ${mode === "reset" ? "active" : ""}`} onClick={() => setMode("reset")}>Reset</button>
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            </div>
+            {mode === "signup" && (
+              <div className="field">
+                <label>Name</label>
+                <input value={name} onChange={(event) => setName(event.target.value)} />
+              </div>
+            )}
+            {needsPassword && (
+              <div className="field">
+                <label>Password</label>
+                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+              </div>
+            )}
+            {mode === "reset" && (
+              <div className="field">
+                <label>New password</label>
+                <input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
+              </div>
+            )}
+            {needsOtp && (
+              <>
+                <div className="row">
+                  <span className="muted">{mode === "reset" ? "Request reset OTP" : "Request login OTP"}</span>
+                  <Button type="button" className="secondary" disabled={busy || !email} onClick={() => requestOtp(mode === "reset" ? "reset" : "login")}>
+                    Send OTP
+                  </Button>
+                </div>
+                <div className="field">
+                  <label>OTP</label>
+                  <input inputMode="numeric" maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} required />
+                </div>
+              </>
+            )}
+            {devOtp && <div className="notice">Dev OTP: {devOtp}</div>}
+            {message && <div className="notice">{message}</div>}
+            {error && <div className="notice">{error}</div>}
+            <Button disabled={busy} type="submit">
+              {mode === "reset" ? "Reset Password" : "Continue"}
+            </Button>
+          </form>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -78,7 +248,7 @@ function Metrics({ status }) {
   );
 }
 
-function SeatPicker({ session, onLocked }) {
+function SeatPicker({ session, token, onLocked }) {
   const [seats, setSeats] = useState([]);
   const [error, setError] = useState("");
   const [busySeat, setBusySeat] = useState("");
@@ -112,9 +282,9 @@ function SeatPicker({ session, onLocked }) {
     setError("");
     try {
       const result = await api("/seats/lock", {
+        token,
         method: "POST",
         body: JSON.stringify({
-          user_id: session.userId,
           train_id: session.trainId,
           seat_id: seat.id,
         }),
@@ -161,7 +331,7 @@ function SeatPicker({ session, onLocked }) {
   );
 }
 
-function Payment({ session, locked, onDone, onRelease }) {
+function Payment({ session, token, locked, onDone, onRelease }) {
   const [name, setName] = useState("Demo Passenger");
   const [age, setAge] = useState(30);
   const [error, setError] = useState("");
@@ -178,9 +348,9 @@ function Payment({ session, locked, onDone, onRelease }) {
     setError("");
     try {
       const result = await api("/payment/process", {
+        token,
         method: "POST",
         body: JSON.stringify({
-          user_id: session.userId,
           train_id: session.trainId,
           seat_id: locked.seat.id,
           passenger_name: name,
@@ -240,7 +410,7 @@ function Payment({ session, locked, onDone, onRelease }) {
   );
 }
 
-function BookingFlow() {
+function BookingFlow({ auth }) {
   const [trains, setTrains] = useState([]);
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState(null);
@@ -255,7 +425,7 @@ function BookingFlow() {
 
   useEffect(() => {
     if (!session || status?.status !== "waiting") return;
-    const ws = new WebSocket(`${WS_BASE}/ws/queue?user_id=${session.userId}&train_id=${session.trainId}`);
+    const ws = new WebSocket(`${WS_BASE}/ws/queue?train_id=${session.trainId}&token=${encodeURIComponent(auth.token)}`);
     wsRef.current = ws;
     ws.onmessage = (event) => {
       const next = JSON.parse(event.data);
@@ -272,6 +442,7 @@ function BookingFlow() {
     setBooking(null);
     try {
       const result = await api("/queue/join", {
+        token: auth.token,
         method: "POST",
         body: JSON.stringify({ train_id: train.id }),
       });
@@ -284,14 +455,15 @@ function BookingFlow() {
 
   async function refreshStatus() {
     if (!session) return;
-    const result = await api(`/queue/status?user_id=${session.userId}&train_id=${session.trainId}`);
+    const result = await api(`/queue/status?train_id=${session.trainId}`, { token: auth.token });
     setStatus(result);
   }
 
   async function release() {
     await api("/seats/release", {
+      token: auth.token,
       method: "POST",
-      body: JSON.stringify({ user_id: session.userId, seat_id: locked.seat.id }),
+      body: JSON.stringify({ seat_id: locked.seat.id }),
     }).catch(() => null);
     setLocked(null);
   }
@@ -316,11 +488,11 @@ function BookingFlow() {
   }
 
   if (locked) {
-    return <Payment session={session} locked={locked} onDone={setBooking} onRelease={release} />;
+    return <Payment session={session} token={auth.token} locked={locked} onDone={setBooking} onRelease={release} />;
   }
 
   if (session && status?.status === "admitted") {
-    return <SeatPicker session={session} onLocked={setLocked} />;
+    return <SeatPicker session={session} token={auth.token} onLocked={setLocked} />;
   }
 
   if (session) {
@@ -368,13 +540,18 @@ function BookingFlow() {
   );
 }
 
-function Admin() {
+function Admin({ auth }) {
   const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
 
   async function load() {
+    if (auth.user.role !== "admin") return;
     try {
-      setStats(await api("/admin/stats"));
+      const nextStats = await api("/admin/stats", { token: auth.token });
+      setStats(nextStats);
+      const userData = await api("/admin/users", { token: auth.token });
+      setUsers(userData.users);
     } catch (err) {
       setError(err.message);
     }
@@ -387,8 +564,22 @@ function Admin() {
   }, []);
 
   async function reset() {
-    await api("/admin/reset", { method: "POST", body: JSON.stringify({}) });
+    await api("/admin/reset", { token: auth.token, method: "POST", body: JSON.stringify({}) });
     await load();
+  }
+
+  async function deleteUser(userId) {
+    await api(`/admin/users/${userId}`, { token: auth.token, method: "DELETE" });
+    await load();
+  }
+
+  if (auth.user.role !== "admin") {
+    return (
+      <section className="panel">
+        <h2>Admin Only</h2>
+        <p>Your account can book tickets, but admin stats and user deletion require an admin role.</p>
+      </section>
+    );
   }
 
   if (!stats) return <section className="panel">Loading admin stats...</section>;
@@ -441,12 +632,36 @@ function Admin() {
           <span>{stats.active_lock_count}</span>
         </div>
       </div>
+      <h3>User Management</h3>
+      <div className="list">
+        {users.map((user) => (
+          <div className="row" key={user.id}>
+            <span>{user.email} ({user.role})</span>
+            <Button className="danger" disabled={user.id === auth.user.id} onClick={() => deleteUser(user.id)}>
+              Delete
+            </Button>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
 
 export default function Home() {
   const [tab, setTab] = useState("book");
+  const [auth, setAuth] = useState(null);
+
+  useEffect(() => {
+    setAuth(loadAuth());
+  }, []);
+
+  function logout() {
+    clearAuth();
+    setAuth(null);
+    setTab("book");
+  }
+
+  if (!auth) return <AuthPanel onAuth={setAuth} />;
 
   return (
     <>
@@ -456,6 +671,7 @@ export default function Home() {
             <div className="brand-mark">FQ</div>
             <span>FairQueue</span>
           </div>
+          <div className="muted hide-sm">{auth.user.email}</div>
           <nav className="tabs">
             <button className={`tab ${tab === "book" ? "active" : ""}`} onClick={() => setTab("book")}>
               Book
@@ -463,10 +679,13 @@ export default function Home() {
             <button className={`tab ${tab === "admin" ? "active" : ""}`} onClick={() => setTab("admin")}>
               Admin
             </button>
+            <button className="tab" onClick={logout}>
+              Logout
+            </button>
           </nav>
         </div>
       </header>
-      <main className="shell">{tab === "book" ? <BookingFlow /> : <Admin />}</main>
+      <main className="shell">{tab === "book" ? <BookingFlow auth={auth} /> : <Admin auth={auth} />}</main>
     </>
   );
 }
