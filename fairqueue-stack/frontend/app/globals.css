@@ -101,6 +101,12 @@ button:disabled {
   padding-top: 28px;
 }
 
+@media (min-width: 901px) {
+  .auth-shell .hero-grid form.panel {
+    margin-top: 18px;
+  }
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
