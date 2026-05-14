@@ -353,8 +353,8 @@ function BookingFlow() {
             </p>
           </div>
           <div className="panel">
-            <h2>System Checks</h2>
-            <p>Backend: FastAPI. Queue and locks: Redis. Bookings: Postgres. Frontend: Next.js.</p>
+            <h2>Distributed Systems Demo</h2>
+            <p>Simulates virtual queueing, controlled batch admission, temporary seat locking, rate limiting, and live booking workflows using Redis, FastAPI, PostgreSQL, and Next.js.</p>
           </div>
         </div>
       </section>
