@@ -26,5 +26,8 @@ Open:
 - Backend docs: http://localhost:8000/docs
 - Locust: http://localhost:8089
 
+## DEPLOY 
+https://fair-queue.vercel.app/
+
 See [`fairqueue-stack/README.md`](./fairqueue-stack/README.md) for full setup,
 API notes, and verification steps.
