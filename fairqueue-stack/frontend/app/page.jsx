@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
-const WS_BASE = process.env.NEXT_PUBLIC_WS_BASE || "ws://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const WS_BASE = API_BASE.replace(/^http(s?):\/\//, "ws$1://");
 const AUTH_KEY = "fairqueue.auth";
 
 async function api(path, options = {}) {
