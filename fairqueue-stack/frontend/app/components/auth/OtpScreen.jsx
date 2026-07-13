@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api, saveAuth } from "../../lib/api";
-import { AuthShell, AuthNotice, Spinner, IconArrowLeft } from "./ui";
+import { AuthShell, AuthNotice, Spinner, IconArrowLeft, authSuccessMessage } from "./ui";
 
 export function OtpScreen({ onAuth, onNavigate }) {
   const [email, setEmail] = useState("");
@@ -26,7 +26,7 @@ export function OtpScreen({ onAuth, onNavigate }) {
         setDevOtp(result.dev_otp);
         setMessage(`Your OTP is: ${result.dev_otp}`);
       } else {
-        setMessage(result.message);
+        setMessage(authSuccessMessage(result.message));
       }
       setOtpSent(true);
       setOtp("");

@@ -47,6 +47,15 @@ export function AuthNotice({ type, children }) {
   );
 }
 
+export function authSuccessMessage(message) {
+  const messages = {
+    otp_sent: "OTP sent. Check your email for the 6-digit code.",
+    if_account_exists_otp_sent: "If an account exists, an OTP has been sent to your email.",
+    otp_verified: "OTP verified.",
+  };
+  return messages[message] || message || "Success";
+}
+
 export function PasswordInput({ id, value, onChange, placeholder = "••••••••", autoComplete = "current-password", disabled = false }) {
   const [show, setShow] = useState(false);
   return (

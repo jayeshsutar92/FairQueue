@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../lib/api";
-import { AuthShell, AuthNotice, PasswordInput, Spinner, IconArrowLeft } from "./ui";
+import { AuthShell, AuthNotice, PasswordInput, Spinner, IconArrowLeft, authSuccessMessage } from "./ui";
 
 export function ForgotPasswordScreen({ onNavigate }) {
   const [email, setEmail] = useState("");
@@ -29,7 +29,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
         setDevOtp(result.dev_otp);
         setMessage(`Your OTP is: ${result.dev_otp}`);
       } else {
-        setMessage(result.message);
+        setMessage(authSuccessMessage(result.message));
       }
       setStep(2);
       setOtp("");
@@ -51,7 +51,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
         body: JSON.stringify({ email, otp }),
       });
       setResetToken(result.reset_token || "");
-      setMessage(result.message || "otp_verified");
+      setMessage(authSuccessMessage(result.message));
       setStep(3);
     } catch (err) {
       setError(err.message);
