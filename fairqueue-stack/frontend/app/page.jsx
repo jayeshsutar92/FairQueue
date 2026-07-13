@@ -450,6 +450,7 @@ function OtpScreen({ onAuth, onNavigate }) {
 
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
+        {devOtp && <AuthNotice type="dev">Dev OTP: <strong>{devOtp}</strong></AuthNotice>}
 
         <form className="auth-form" onSubmit={submit} noValidate>
           <div className="auth-field">
@@ -493,11 +494,6 @@ function OtpScreen({ onAuth, onNavigate }) {
                   autoFocus
                   required
                 />
-                {devOtp && (
-                  <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "var(--text-muted)" }}>
-                    Dev OTP: {devOtp}
-                  </p>
-                )}
               </div>
               <button className="auth-btn" type="submit" disabled={busy || otp.length < 6}>
                 {busy && <Spinner />}
