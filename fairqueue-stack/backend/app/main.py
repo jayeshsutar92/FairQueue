@@ -206,9 +206,15 @@ import traceback
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print(traceback.format_exc())
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin in origins:
+        headers["access-control-allow-origin"] = origin
+        headers["access-control-allow-credentials"] = "true"
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error"},
+        headers=headers
     )
 
 @app.get('/health')
