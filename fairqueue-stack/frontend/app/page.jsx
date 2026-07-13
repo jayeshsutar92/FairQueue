@@ -116,9 +116,18 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
   );
 }
 
-function OtpInput({ value, onChange }) {
+function OtpInput({ value, onChange, autoFocusFirstCell = false }) {
   const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
   const digits = value.padEnd(6, "").split("").slice(0, 6);
+
+  // Imperatively focus after conditional mount — autoFocus attr only fires
+  // on initial page load, not when a component mounts later via {otpSent && …}
+  useEffect(() => {
+    if (autoFocusFirstCell) {
+      inputRefs[0].current?.focus();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocusFirstCell]);
 
   function handleChange(i, e) {
     const char = e.target.value.replace(/\D/g, "").slice(-1);
@@ -156,13 +165,13 @@ function OtpInput({ value, onChange }) {
           onChange={(e) => handleChange(i, e)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          autoFocus={i === 0}
           aria-label={`OTP digit ${i + 1}`}
         />
       ))}
     </div>
   );
 }
+
 
 // ─── AuthShell — shared card wrapper ────────────────────────────────────────
 
@@ -376,6 +385,10 @@ function SignupScreen({ onAuth, onNavigate }) {
 
 // ─── OTP login screen ────────────────────────────────────────────────────────
 
+// Set NEXT_PUBLIC_SHOW_DEV_OTP=true in .env.local to show the dev OTP panel.
+// Leave unset (or set to anything else) in production to hide it entirely.
+const SHOW_DEV_OTP = process.env.NEXT_PUBLIC_SHOW_DEV_OTP === "true";
+
 function OtpScreen({ onAuth, onNavigate }) {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -441,7 +454,19 @@ function OtpScreen({ onAuth, onNavigate }) {
 
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
-        {devOtp && <AuthNotice type="dev">Dev OTP: <strong>{devOtp}</strong></AuthNotice>}
+
+        {/* Dev-only OTP panel — hidden in production via NEXT_PUBLIC_SHOW_DEV_OTP */}
+        {SHOW_DEV_OTP && devOtp && (
+          <button
+            type="button"
+            className="auth-notice auth-notice--dev"
+            style={{ cursor: "pointer", width: "100%", textAlign: "left" }}
+            title="Click to auto-fill OTP"
+            onClick={() => setOtp(devOtp)}
+          >
+            🛠 Dev OTP (click to fill): <strong style={{ letterSpacing: "0.15em" }}>{devOtp}</strong>
+          </button>
+        )}
 
         <form className="auth-form" onSubmit={submit} noValidate>
           <div className="auth-field">
@@ -453,7 +478,7 @@ function OtpScreen({ onAuth, onNavigate }) {
                 className="auth-input"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setOtpSent(false); setOtp(""); setMessage(""); }}
+                onChange={(e) => { setEmail(e.target.value); setOtpSent(false); setOtp(""); setMessage(""); setDevOtp(""); }}
                 autoComplete="email"
                 disabled={busy}
                 required
@@ -474,7 +499,7 @@ function OtpScreen({ onAuth, onNavigate }) {
             <>
               <div className="auth-field">
                 <label className="auth-label">Enter 6-digit OTP</label>
-                <OtpInput value={otp} onChange={setOtp} />
+                <OtpInput value={otp} onChange={setOtp} autoFocusFirstCell />
               </div>
               <button className="auth-btn" type="submit" disabled={busy || otp.length < 6}>
                 {busy && <Spinner />}
@@ -487,6 +512,7 @@ function OtpScreen({ onAuth, onNavigate }) {
     </AuthShell>
   );
 }
+
 
 // ─── Forgot password screen ──────────────────────────────────────────────────
 
