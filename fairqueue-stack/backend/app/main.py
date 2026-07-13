@@ -57,6 +57,7 @@ app = FastAPI(title='FairQueue API', version='1.0.0', lifespan=lifespan)
 origins = [
     "https://fair-queue.vercel.app",
     "http://localhost:3000",
+    "http://localhost:5173",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
@@ -66,8 +67,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
 )
 
 class SignupReq(BaseModel):
@@ -198,6 +199,17 @@ async def consume_otp(s: AsyncSession, email: str, purpose: str, code: str) -> N
         raise HTTPException(400, 'invalid_or_expired_otp')
     row.consumed_at = datetime.utcnow()
     await s.commit()
+
+from fastapi.responses import JSONResponse
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
 
 @app.get('/health')
 async def health():
