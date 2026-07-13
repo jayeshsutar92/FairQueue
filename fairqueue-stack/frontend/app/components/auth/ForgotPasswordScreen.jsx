@@ -23,8 +23,12 @@ export function ForgotPasswordScreen({ onNavigate }) {
         method: "POST",
         body: JSON.stringify({ email }),
       });
-      setMessage(result.message || "Reset code sent to your email");
-      if (result.dev_otp) setDevOtp(result.dev_otp);
+      if (result.dev_otp) {
+        setDevOtp(result.dev_otp);
+        setMessage(`Your OTP is: ${result.dev_otp}`);
+      } else {
+        setMessage("Reset code sent to your email");
+      }
       setStep(2);
     } catch (err) {
       setError(err.message);
