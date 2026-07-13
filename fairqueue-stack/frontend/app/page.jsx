@@ -385,10 +385,6 @@ function SignupScreen({ onAuth, onNavigate }) {
 
 // ─── OTP login screen ────────────────────────────────────────────────────────
 
-// Set NEXT_PUBLIC_SHOW_DEV_OTP=true in .env.local to show the dev OTP panel.
-// Leave unset (or set to anything else) in production to hide it entirely.
-const SHOW_DEV_OTP = process.env.NEXT_PUBLIC_SHOW_DEV_OTP === "true";
-
 function OtpScreen({ onAuth, onNavigate }) {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -455,8 +451,8 @@ function OtpScreen({ onAuth, onNavigate }) {
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
 
-        {/* Dev-only OTP panel — hidden in production via NEXT_PUBLIC_SHOW_DEV_OTP */}
-        {SHOW_DEV_OTP && devOtp && (
+        {/* Dev-only OTP panel (Backend only sends this in dev mode) */}
+        {devOtp && (
           <button
             type="button"
             className="auth-notice auth-notice--dev"
