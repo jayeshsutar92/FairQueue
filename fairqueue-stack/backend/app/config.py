@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str = 'postgresql+asyncpg://fairqueue:fairqueue@postgres:5432/fairqueue'
-    REDIS_URL: str = 'redis://redis:6379/0'
+    REDIS_URL: str = 'redis://localhost:6379/0'
     JWT_SECRET: str = 'dev-change-me-fairqueue-secret'
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 120
     OTP_EXPIRE_MINUTES: int = 10
