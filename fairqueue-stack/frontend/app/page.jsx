@@ -451,19 +451,6 @@ function OtpScreen({ onAuth, onNavigate }) {
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
 
-        {/* Dev-only OTP panel (Backend only sends this in dev mode) */}
-        {devOtp && (
-          <button
-            type="button"
-            className="auth-notice auth-notice--dev"
-            style={{ cursor: "pointer", width: "100%", textAlign: "left" }}
-            title="Click to auto-fill OTP"
-            onClick={() => setOtp(devOtp)}
-          >
-            🛠 Dev OTP (click to fill): <strong style={{ letterSpacing: "0.15em" }}>{devOtp}</strong>
-          </button>
-        )}
-
         <form className="auth-form" onSubmit={submit} noValidate>
           <div className="auth-field">
             <label className="auth-label" htmlFor="otp-email">Email address</label>
@@ -494,8 +481,23 @@ function OtpScreen({ onAuth, onNavigate }) {
           {otpSent && (
             <>
               <div className="auth-field">
-                <label className="auth-label">Enter 6-digit OTP</label>
-                <OtpInput value={otp} onChange={setOtp} autoFocusFirstCell />
+                <label className="auth-label" htmlFor="otp-input">OTP</label>
+                <input
+                  id="otp-input"
+                  type="text"
+                  className="auth-input"
+                  placeholder="123456"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  autoFocus
+                  required
+                />
+                {devOtp && (
+                  <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "var(--text-muted)" }}>
+                    Dev OTP: {devOtp}
+                  </p>
+                )}
               </div>
               <button className="auth-btn" type="submit" disabled={busy || otp.length < 6}>
                 {busy && <Spinner />}
