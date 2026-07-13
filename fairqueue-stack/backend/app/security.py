@@ -127,8 +127,11 @@ def generate_otp() -> str:
 
 
 def hash_otp(email: str, purpose: str, code: str) -> str:
-    msg = f"{normalize_email(email)}:{purpose}:{code}".encode("utf-8")
-    return hmac.new(settings.JWT_SECRET.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+    return hash_password(f"{normalize_email(email)}:{purpose}:{code}")
+
+
+def verify_otp(email: str, purpose: str, code: str, stored_hash: str) -> bool:
+    return verify_password(f"{normalize_email(email)}:{purpose}:{code}", stored_hash)
 
 
 def otp_expiry() -> datetime:

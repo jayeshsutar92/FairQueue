@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 import uuid
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -25,6 +26,7 @@ from .security import (
     require_admin,
     validate_email,
     validate_password,
+    verify_otp,
     verify_password,
 )
 from . import queue_service as q
@@ -116,7 +118,8 @@ class OtpVerifyReq(BaseModel):
 
 class PasswordResetReq(BaseModel):
     email: str
-    otp: str = Field(min_length=6, max_length=6)
+    otp: str | None = Field(default=None, min_length=6, max_length=6)
+    reset_token: str | None = Field(default=None, min_length=20, max_length=200)
     new_password: str = Field(min_length=8, max_length=128)
 
     @field_validator('email')
@@ -126,8 +129,8 @@ class PasswordResetReq(BaseModel):
 
     @field_validator('otp')
     @classmethod
-    def otp_valid(cls, value: str) -> str:
-        if not value.isdigit():
+    def otp_valid(cls, value: str | None) -> str | None:
+        if value is not None and not value.isdigit():
             raise ValueError('otp_must_be_numeric')
         return value
 
@@ -168,6 +171,10 @@ def auth_out(user: User) -> dict:
 
 async def create_otp(s: AsyncSession, email: str, purpose: str) -> str:
     code = generate_otp()
+    await create_otp_secret(s, email, purpose, code)
+    return code
+
+async def create_otp_secret(s: AsyncSession, email: str, purpose: str, code: str) -> None:
     await s.execute(
         update(OtpCode)
         .where(OtpCode.email == email, OtpCode.purpose == purpose, OtpCode.consumed_at.is_(None))
@@ -181,22 +188,20 @@ async def create_otp(s: AsyncSession, email: str, purpose: str) -> str:
         expires_at=otp_expiry(),
     ))
     await s.commit()
-    return code
 
-async def consume_otp(s: AsyncSession, email: str, purpose: str, code: str) -> None:
-    code_hash = hash_otp(email, purpose, code)
+async def consume_otp(s: AsyncSession, email: str, purpose: str, code: str, error: str = 'invalid_or_expired_otp') -> None:
     row = (await s.execute(
         select(OtpCode)
         .where(
             OtpCode.email == email,
             OtpCode.purpose == purpose,
-            OtpCode.code_hash == code_hash,
             OtpCode.consumed_at.is_(None),
         )
         .order_by(OtpCode.created_at.desc())
+        .limit(1)
     )).scalar_one_or_none()
-    if not row or row.expires_at < datetime.utcnow():
-        raise HTTPException(400, 'invalid_or_expired_otp')
+    if not row or row.expires_at < datetime.utcnow() or not verify_otp(email, purpose, code, row.code_hash):
+        raise HTTPException(400, error)
     row.consumed_at = datetime.utcnow()
     await s.commit()
 
@@ -300,12 +305,29 @@ async def auth_password_forgot(req: OtpRequestReq, request: Request, s: AsyncSes
             response['dev_otp'] = code
     return response
 
+@app.post('/auth/password/verify')
+async def auth_password_verify(req: OtpVerifyReq, request: Request, s: AsyncSession = Depends(get_session)):
+    await rate_guard(request, 'auth/password/verify')
+    email = normalize_email(req.email)
+    user = (await s.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    if not user or not user.is_active:
+        raise HTTPException(404, 'user_not_found')
+    await consume_otp(s, email, 'reset', req.otp)
+    reset_token = secrets.token_urlsafe(32)
+    await create_otp_secret(s, email, 'reset_verified', reset_token)
+    return {'success': True, 'message': 'otp_verified', 'reset_token': reset_token}
+
 @app.post('/auth/password/reset')
 async def auth_password_reset(req: PasswordResetReq, request: Request, s: AsyncSession = Depends(get_session)):
     await rate_guard(request, 'auth/password/reset')
     validate_password(req.new_password)
     email = normalize_email(req.email)
-    await consume_otp(s, email, 'reset', req.otp)
+    if req.reset_token:
+        await consume_otp(s, email, 'reset_verified', req.reset_token, 'invalid_or_expired_reset_token')
+    elif req.otp:
+        await consume_otp(s, email, 'reset', req.otp)
+    else:
+        raise HTTPException(422, 'reset_verification_required')
     user = (await s.execute(select(User).where(User.email == email))).scalar_one_or_none()
     if not user or not user.is_active:
         raise HTTPException(404, 'user_not_found')

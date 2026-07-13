@@ -7,6 +7,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [devOtp, setDevOtp] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,6 +19,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
     setError("");
     setMessage("");
     setDevOtp("");
+    setResetToken("");
     try {
       const result = await api("/auth/password/forgot", {
         method: "POST",
@@ -30,6 +32,8 @@ export function ForgotPasswordScreen({ onNavigate }) {
         setMessage(result.message);
       }
       setStep(2);
+      setOtp("");
+      setNewPassword("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,11 +41,23 @@ export function ForgotPasswordScreen({ onNavigate }) {
     }
   }
 
-  function proceedToNewPassword() {
+  async function proceedToNewPassword() {
     if (otp.length < 6) { setError("Please enter the complete 6-digit code"); return; }
+    setBusy(true);
     setError("");
-    setMessage("");
-    setStep(3);
+    try {
+      const result = await api("/auth/password/verify", {
+        method: "POST",
+        body: JSON.stringify({ email, otp }),
+      });
+      setResetToken(result.reset_token || "");
+      setMessage(result.message || "otp_verified");
+      setStep(3);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function submit(e) {
@@ -51,7 +67,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
     try {
       await api("/auth/password/reset", {
         method: "POST",
-        body: JSON.stringify({ email, otp, new_password: newPassword }),
+        body: JSON.stringify({ email, reset_token: resetToken, new_password: newPassword }),
       });
       onNavigate("login");
     } catch (err) {
@@ -81,7 +97,6 @@ export function ForgotPasswordScreen({ onNavigate }) {
 
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
-
 
         {step === 1 && (
           <div className="auth-form">
@@ -130,17 +145,18 @@ export function ForgotPasswordScreen({ onNavigate }) {
               type="button"
               className="auth-btn"
               onClick={proceedToNewPassword}
-              disabled={otp.length < 6}
+              disabled={busy || otp.length < 6}
             >
+              {busy && <Spinner />}
               Verify code
             </button>
             <button
               type="button"
               className="auth-btn auth-btn--outline"
-              onClick={() => { setStep(1); setOtp(""); setMessage(""); setError(""); setDevOtp(""); }}
+              onClick={() => { setStep(1); setOtp(""); setMessage(""); setError(""); setDevOtp(""); setResetToken(""); }}
               disabled={busy}
             >
-              Back — resend code
+              Back - resend code
             </button>
           </div>
         )}
@@ -159,7 +175,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
               />
             </div>
 
-            <button className="auth-btn" type="submit" disabled={busy || !newPassword}>
+            <button className="auth-btn" type="submit" disabled={busy || !newPassword || !resetToken}>
               {busy && <Spinner />}
               Reset password
             </button>
@@ -167,10 +183,10 @@ export function ForgotPasswordScreen({ onNavigate }) {
             <button
               type="button"
               className="auth-btn auth-btn--outline"
-              onClick={() => { setStep(2); setError(""); }}
+              onClick={() => { setStep(2); setError(""); setResetToken(""); }}
               disabled={busy}
             >
-              Back — change code
+              Back - change code
             </button>
           </form>
         )}
