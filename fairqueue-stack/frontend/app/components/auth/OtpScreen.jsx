@@ -26,7 +26,7 @@ export function OtpScreen({ onAuth, onNavigate }) {
         setDevOtp(result.dev_otp);
         setMessage(`Your OTP is: ${result.dev_otp}`);
       } else {
-        setMessage("OTP sent to your email. Enter the 6-digit code below.");
+        setMessage(result.message);
       }
       setOtpSent(true);
       setOtp("");

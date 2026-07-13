@@ -27,7 +27,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
         setDevOtp(result.dev_otp);
         setMessage(`Your OTP is: ${result.dev_otp}`);
       } else {
-        setMessage("Reset code sent to your email");
+        setMessage(result.message);
       }
       setStep(2);
     } catch (err) {
