@@ -263,18 +263,6 @@ function LoginScreen({ onAuth, onNavigate }) {
             Sign in
           </button>
         </form>
-
-        <div className="auth-divider"><span>or</span></div>
-
-        <button
-          type="button"
-          className="auth-btn auth-btn--outline"
-          onClick={() => onNavigate("otp")}
-          disabled={busy}
-        >
-          Login with OTP
-        </button>
-
         <p className="auth-footer-text">
           Don&apos;t have an account?{" "}
           <button type="button" className="auth-link" onClick={() => onNavigate("signup")}>
@@ -577,7 +565,17 @@ function ForgotPasswordScreen({ onNavigate }) {
 
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
-        {devOtp && <AuthNotice type="dev">Dev OTP: <strong>{devOtp}</strong></AuthNotice>}
+        {devOtp && (
+          <button
+            type="button"
+            className="auth-notice auth-notice--dev"
+            style={{ cursor: "pointer", width: "100%", textAlign: "left" }}
+            title="Click to auto-fill reset code"
+            onClick={() => setOtp(devOtp)}
+          >
+            🛠 Dev OTP (click to fill): <strong style={{ letterSpacing: "0.15em" }}>{devOtp}</strong>
+          </button>
+        )}
 
         {step === 1 ? (
           <div className="auth-form">
