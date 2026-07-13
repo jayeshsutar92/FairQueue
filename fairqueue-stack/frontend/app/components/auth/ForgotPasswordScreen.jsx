@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../lib/api";
-import { AuthShell, AuthNotice, PasswordInput, OtpInput, Spinner, IconArrowLeft } from "./ui";
+import { AuthShell, AuthNotice, PasswordInput, Spinner, IconArrowLeft } from "./ui";
 
 export function ForgotPasswordScreen({ onNavigate }) {
   const [email, setEmail] = useState("");
@@ -10,7 +10,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [step, setStep] = useState(1); // 1 = enter email, 2 = enter OTP + new password
+  const [step, setStep] = useState(1); // 1 = enter email, 2 = enter OTP, 3 = new password
 
   async function requestReset() {
     if (!email) return;
@@ -33,9 +33,15 @@ export function ForgotPasswordScreen({ onNavigate }) {
     }
   }
 
+  function proceedToNewPassword() {
+    if (otp.length < 6) { setError("Please enter the complete 6-digit code"); return; }
+    setError("");
+    setMessage("");
+    setStep(3);
+  }
+
   async function submit(e) {
     e.preventDefault();
-    if (otp.length < 6) { setError("Please enter the complete 6-digit code"); return; }
     setBusy(true);
     setError("");
     try {
@@ -51,6 +57,12 @@ export function ForgotPasswordScreen({ onNavigate }) {
     }
   }
 
+  const subtitles = {
+    1: "Enter your email to receive a reset code",
+    2: "Enter the 6-digit code sent to your email",
+    3: "Choose a new password",
+  };
+
   return (
     <AuthShell>
       <div className="auth-screen">
@@ -60,28 +72,18 @@ export function ForgotPasswordScreen({ onNavigate }) {
 
         <div className="auth-header">
           <h2 className="auth-title">Forgot password?</h2>
-          <p className="auth-subtitle">
-            {step === 1
-              ? "Enter your email to receive a reset code"
-              : "Enter the code and choose a new password"}
-          </p>
+          <p className="auth-subtitle">{subtitles[step]}</p>
         </div>
 
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
-        {devOtp && (
-          <button
-            type="button"
-            className="auth-notice auth-notice--dev"
-            style={{ cursor: "pointer", width: "100%", textAlign: "left" }}
-            title="Click to auto-fill reset code"
-            onClick={() => setOtp(devOtp)}
-          >
-            🛠 Dev OTP (click to fill): <strong style={{ letterSpacing: "0.15em" }}>{devOtp}</strong>
-          </button>
+        {devOtp && step === 2 && (
+          <div className="auth-notice auth-notice--dev">
+            Dev OTP: <strong style={{ letterSpacing: "0.15em" }}>{devOtp}</strong>
+          </div>
         )}
 
-        {step === 1 ? (
+        {step === 1 && (
           <div className="auth-form">
             <div className="auth-field">
               <label className="auth-label" htmlFor="forgot-email">Email address</label>
@@ -106,13 +108,45 @@ export function ForgotPasswordScreen({ onNavigate }) {
               Send reset code
             </button>
           </div>
-        ) : (
-          <form className="auth-form" onSubmit={submit} noValidate>
-            <div className="auth-field">
-              <label className="auth-label">6-digit reset code</label>
-              <OtpInput value={otp} onChange={setOtp} />
-            </div>
+        )}
 
+        {step === 2 && (
+          <div className="auth-form">
+            <div className="auth-field">
+              <label className="auth-label" htmlFor="forgot-otp">OTP</label>
+              <input
+                id="forgot-otp"
+                type="text"
+                className="auth-input"
+                placeholder="123456"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                autoFocus
+                required
+              />
+            </div>
+            <button
+              type="button"
+              className="auth-btn"
+              onClick={proceedToNewPassword}
+              disabled={otp.length < 6}
+            >
+              Verify code
+            </button>
+            <button
+              type="button"
+              className="auth-btn auth-btn--outline"
+              onClick={() => { setStep(1); setOtp(""); setMessage(""); setError(""); setDevOtp(""); }}
+              disabled={busy}
+            >
+              Back — resend code
+            </button>
+          </div>
+        )}
+
+        {step === 3 && (
+          <form className="auth-form" onSubmit={submit} noValidate>
             <div className="auth-field">
               <label className="auth-label" htmlFor="forgot-newpw">New password</label>
               <PasswordInput
@@ -125,7 +159,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
               />
             </div>
 
-            <button className="auth-btn" type="submit" disabled={busy || otp.length < 6 || !newPassword}>
+            <button className="auth-btn" type="submit" disabled={busy || !newPassword}>
               {busy && <Spinner />}
               Reset password
             </button>
@@ -133,10 +167,10 @@ export function ForgotPasswordScreen({ onNavigate }) {
             <button
               type="button"
               className="auth-btn auth-btn--outline"
-              onClick={() => { setStep(1); setOtp(""); setMessage(""); setError(""); }}
+              onClick={() => { setStep(2); setError(""); }}
               disabled={busy}
             >
-              Back — resend code
+              Back — change code
             </button>
           </form>
         )}
