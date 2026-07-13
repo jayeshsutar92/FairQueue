@@ -156,6 +156,7 @@ function OtpInput({ value, onChange }) {
           onChange={(e) => handleChange(i, e)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
+          autoFocus={i === 0}
           aria-label={`OTP digit ${i + 1}`}
         />
       ))}
@@ -395,9 +396,10 @@ function OtpScreen({ onAuth, onNavigate }) {
         method: "POST",
         body: JSON.stringify({ email }),
       });
-      setMessage(result.message || "OTP sent to your email");
+      setMessage("OTP sent to your email. Enter the 6-digit code below.");
       if (result.dev_otp) setDevOtp(result.dev_otp);
       setOtpSent(true);
+      setOtp("");
     } catch (err) {
       setError(err.message);
     } finally {
