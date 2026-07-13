@@ -22,8 +22,12 @@ export function OtpScreen({ onAuth, onNavigate }) {
         method: "POST",
         body: JSON.stringify({ email }),
       });
-      setMessage("OTP sent to your email. Enter the 6-digit code below.");
-      if (result.dev_otp) setDevOtp(result.dev_otp);
+      if (result.dev_otp) {
+        setDevOtp(result.dev_otp);
+        setMessage(`Your OTP is: ${result.dev_otp}`);
+      } else {
+        setMessage("OTP sent to your email. Enter the 6-digit code below.");
+      }
       setOtpSent(true);
       setOtp("");
     } catch (err) {
@@ -67,7 +71,6 @@ export function OtpScreen({ onAuth, onNavigate }) {
 
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
-        {devOtp && <AuthNotice type="dev">Dev OTP: <strong>{devOtp}</strong></AuthNotice>}
 
         <form className="auth-form" onSubmit={submit} noValidate>
           <div className="auth-field">

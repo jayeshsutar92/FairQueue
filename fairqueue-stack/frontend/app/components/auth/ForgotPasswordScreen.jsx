@@ -81,11 +81,7 @@ export function ForgotPasswordScreen({ onNavigate }) {
 
         {error && <AuthNotice type="error">{error}</AuthNotice>}
         {message && <AuthNotice type="success">{message}</AuthNotice>}
-        {devOtp && step === 2 && (
-          <div className="auth-notice auth-notice--dev">
-            Dev OTP: <strong style={{ letterSpacing: "0.15em" }}>{devOtp}</strong>
-          </div>
-        )}
+
 
         {step === 1 && (
           <div className="auth-form">
