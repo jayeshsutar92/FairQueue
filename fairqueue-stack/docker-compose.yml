@@ -57,20 +57,6 @@ services:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - ./backend:/code
-
-  frontend:
-    build: ./frontend
-    container_name: fq_frontend
-    environment:
-      NEXT_PUBLIC_API_BASE: http://localhost:8000
-      NEXT_PUBLIC_WS_BASE: ws://localhost:8000
-    ports:
-      - '3000:3000'
-    depends_on:
-      - backend
-    command: yarn dev
-    volumes:
       - ./frontend:/code
       - /code/node_modules
 

@@ -42,10 +42,10 @@ docker compose up --build
 
 Services:
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
-- Locust: http://localhost:8089
+- Frontend: https://fair-queue.vercel.app
+- Backend API: https://fairqueue.onrender.com
+- Swagger UI: https://fairqueue.onrender.com/docs
+- Locust: https://fairqueue.onrender.com/locust
 - Postgres: localhost:5432 (`fairqueue` / `fairqueue`)
 - Redis: localhost:6379
 
@@ -84,8 +84,8 @@ yarn dev
 
 The frontend reads:
 
-- `NEXT_PUBLIC_API_BASE`, default `http://localhost:8000`
-- `NEXT_PUBLIC_WS_BASE`, default `ws://localhost:8000`
+- `NEXT_PUBLIC_API_BASE`, default `https://fairqueue.onrender.com`
+- `NEXT_PUBLIC_WS_BASE`, default `wss://fairqueue.onrender.com`
 
 ## Core Flows To Verify
 
