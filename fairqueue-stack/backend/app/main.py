@@ -301,7 +301,7 @@ async def auth_password_forgot(req: OtpRequestReq, request: Request, s: AsyncSes
     response = {'success': True, 'message': 'if_account_exists_otp_sent'}
     if user and user.is_active:
         code = await create_otp(s, email, 'reset')
-        if settings.RETURN_DEV_OTP:
+        if settings.SHOW_DEV_OTP:
             response['dev_otp'] = code
     return response
 
