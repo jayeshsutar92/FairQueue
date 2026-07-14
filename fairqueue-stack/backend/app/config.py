@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = 'admin@fairqueue.local'
     ADMIN_PASSWORD: str = 'AdminPass123!'
     ADMISSION_BATCH: int = 5
+    ADMISSION_INTERVAL_MS: int = 4000
+    MAX_ADMITTED_PER_TRAIN: int = 20
+    LOCK_TTL_SECONDS: int = 90
     RATE_LIMIT_MAX: int = 30
     RATE_LIMIT_WINDOW_SEC: int = 10
 
